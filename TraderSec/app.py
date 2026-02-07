@@ -4,17 +4,13 @@ import requests
 
 # --- 1. CORE FUNCTIONS ---
 def get_crypto_prices():
-    # Stable session to prevent the 'SSL' error you saw earlier
     session = requests.Session()
     try:
         url = "https://api.coingecko.com/api/v3/simple/price"
         params = {'ids': 'bitcoin,ethereum,solana', 'vs_currencies': 'usd'}
         response = session.get(url, params=params, timeout=5)
         data = response.json()
-        return {
-            'BTCUSDT': data['bitcoin']['usd'],
-            'SOLUSDT': data['solana']['usd']
-        }
+        return {'BTC': data['bitcoin']['usd'], 'SOL': data['solana']['usd']}
     except: return None
 
 def scan_contract_real(address, chain_id="1"):
@@ -38,92 +34,103 @@ def scan_contract_real(address, chain_id="1"):
         return None
     except: return None
 
-# --- 2. ELITE DARK DESIGN ---
+# --- 2. ADVANCED CYBER DESIGN ---
 st.set_page_config(page_title="Trader-Sec AI", page_icon="🛡️", layout="wide")
 
 st.markdown("""
     <style>
     .stApp { background-color: #0B0E14; color: #E0E0E0; }
-    [data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #30363D; }
-    [data-testid="stSidebar"] .stMarkdown p { color: #ffffff; }
+    [data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #00FBFF33; }
+    
+    /* Connect Wallet Button Styling */
+    .wallet-btn {
+        background: transparent;
+        border: 2px solid #00FBFF;
+        color: #00FBFF;
+        padding: 10px 20px;
+        border-radius: 30px;
+        text-align: center;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 251, 255, 0.2);
+        margin-bottom: 20px;
+    }
+
     div.stButton > button {
         background: linear-gradient(90deg, #00FBFF 0%, #0078FF 100%);
         color: white; border-radius: 12px; font-weight: 800; border: none;
-        padding: 10px; box-shadow: 0 4px 15px rgba(0, 251, 255, 0.3);
+        box-shadow: 0 4px 15px rgba(0, 251, 255, 0.3);
     }
-    .scan-result {
-        background-color: #0D1117; border: 1px solid #00FBFF;
-        padding: 25px; border-radius: 15px; box-shadow: 0 0 20px rgba(0, 251, 255, 0.1);
+
+    .history-item {
+        background: #161B22;
+        padding: 8px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+        border-left: 3px solid #00FBFF;
+        font-size: 0.8em;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. BLACK SIDEBAR (ADMIN PANEL) ---
+# --- 3. PRO SIDEBAR ---
+if 'history' not in st.session_state:
+    st.session_state.history = []
+
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2092/2092663.png", width=80)
-    st.title("🛡️ Trader-Sec Admin")
-    st.markdown("● <span style='color:#00FF41;'>System Status: Active</span>", unsafe_allow_html=True)
-    st.write("---")
+    # Connect Wallet UI
+    st.markdown('<div class="wallet-btn">🦊 Connect Wallet</div>', unsafe_allow_html=True)
     
-    st.subheader("📈 Live Market Feed")
-    prices = get_crypto_prices()
-    if prices:
-        st.metric("BTC", f"${prices['BTCUSDT']:,.2f}")
-        st.metric("SOL", f"${prices['SOLUSDT']:,.2f}")
-    else:
-        st.write("Prices: Updating...")
+    st.title("🛡️ Admin Panel")
+    st.markdown("● <span style='color:#00FF41;'>AI Nodes: Active</span>", unsafe_allow_html=True)
     
     st.write("---")
+    st.subheader("📈 Live Market")
+    p = get_crypto_prices()
+    if p:
+        st.metric("BTC", f"${p['BTC']:,.2f}")
+        st.metric("SOL", f"${p['SOL']:,.2f}")
     
-    st.subheader("⚠️ Security Pro-Tips")
-    st.warning("**1. Key Security:** Never share your .env or Private Keys.")
-    st.info("**2. Execution:** Use Webhooks for faster trade entry.")
-    st.error("**3. Risk:** Always test on Testnet/Paper Trading first.")
-    st.success("**4. Verification:** Check 'Open Source' status before buying.")
-    st.warning("**5. Liquidity:** Ensure LP is locked for at least 6 months.")
-    st.info("**6. Slippage:** Set Max Slippage to 0.5% for high-cap tokens.")
+    st.write("---")
+    
+    # SCAN HISTORY
+    st.subheader("🕒 Recent Scans")
+    if not st.session_state.history:
+        st.caption("No recent scans")
+    for item in st.session_state.history[-3:]: # Show last 3
+        st.markdown(f'<div class="history-item">{item}</div>', unsafe_allow_html=True)
 
     st.write("---")
-    st.caption("DominBsBion © 2026")
+    st.subheader("⚠️ Security Tips")
+    st.warning("1. Never share Private Keys.")
+    st.error("2. Test on Paper Trading.")
 
 # --- 4. MAIN INTERFACE ---
-st.markdown('<h1 style="color:#00FBFF;">🛡️ Trader-Sec AI Intelligence</h1>', unsafe_allow_html=True)
+st.title("🛡️ Trader-Sec AI Intelligence")
+t1, t2 = st.tabs(["🔍 REAL-TIME SCANNER", "💻 CODE AUDITOR"])
 
-tab1, tab2 = st.tabs(["🔍 REAL-TIME SCANNER", "💻 CODE AUDITOR"])
-
-with tab1:
-    st.markdown("### 🛰️ Live Blockchain Intelligence")
-    col_a, col_b = st.columns([3, 1])
-    with col_a:
-        contract_addr = st.text_input("Token Address:", placeholder="0x...", key="scan_input")
-    with col_b:
-        chain = st.selectbox("Network", ["Ethereum", "BSC"], key="chain_select")
-    
+with t1:
+    addr = st.text_input("Token Address:", placeholder="0x...", key="main_scan")
     if st.button("🔍 RUN DEEP SCAN"):
-        if contract_addr:
-            with st.spinner("Analyzing Contract Security..."):
-                # "1" for Ethereum, "56" for BSC
-                c_id = "1" if chain == "Ethereum" else "56"
-                report = scan_contract_real(contract_addr, c_id)
-                if report:
+        if addr:
+            with st.spinner("Analyzing..."):
+                rep = scan_contract_real(addr, "1")
+                if rep:
+                    # Save to history
+                    if rep['name'] not in st.session_state.history:
+                        st.session_state.history.append(f"{rep['name']} ({rep['symbol']})")
+                    
                     st.markdown(f"""
-                        <div class="scan-result">
-                            <h2 style="color:#00FBFF;">{report['name']} ({report['symbol']})</h2>
-                            <p>🍯 <b>Honeypot:</b> {report['honeypot']}</p>
-                            <p>💰 <b>Taxes:</b> Buy: {report['buy_tax']}% | Sell: {report['sell_tax']}%</p>
-                            <hr>
-                            <h2 style="color:#00FBFF; text-align:center;">TRUST SCORE: {report['trust_score']}/100</h2>
+                        <div style="background:#0D1117; border:1px solid #00FBFF; padding:25px; border-radius:15px;">
+                            <h2 style="color:#00FBFF;">{rep['name']} Report</h2>
+                            <p>🍯 Honeypot: {rep['honeypot']}</p>
+                            <p>💰 Taxes: {rep['buy_tax']}%/{rep['sell_tax']}%</p>
+                            <h2 style="text-align:center; color:#00FBFF;">TRUST SCORE: {rep['trust_score']}/100</h2>
                         </div>
                     """, unsafe_allow_html=True)
-                else:
-                    st.error("Error: Address not found. Check the Network selection.")
 
-with tab2:
+with t2:
     st.markdown("### 📥 Code Security Audit")
-    user_code = st.text_area("Paste code here:", height=200, key="audit_input")
-    if st.button("🚀 EXECUTE AUDIT"):
-        if user_code:
-            with st.spinner('Analyzing...'):
-                time.sleep(1)
-                st.success("Analysis Complete! Logic is Secure.")
-                st.balloons()
+    code = st.text_area("Paste code here:", height=200)
+    if st.button("🚀 AUDIT"):
+        st.balloons()
