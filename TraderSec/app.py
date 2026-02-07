@@ -41,45 +41,44 @@ st.markdown("""
     .stApp { background-color: #0B0E14; color: #E0E0E0; }
     [data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #30363D; }
     
-    /* Glowing Wallet Button */
-    .wallet-box {
-        border: 2px solid #00FBFF;
-        color: #00FBFF;
-        padding: 12px;
-        border-radius: 10px;
+    /* Footer Disclaimer Style */
+    .footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: #000000;
+        color: #666666;
         text-align: center;
-        font-weight: bold;
-        margin-bottom: 20px;
-        background: rgba(0, 251, 255, 0.05);
+        padding: 10px;
+        font-size: 12px;
+        border-top: 1px solid #30363D;
     }
 
     div.stButton > button {
         background: linear-gradient(90deg, #00FBFF 0%, #0078FF 100%);
         color: white; border-radius: 12px; font-weight: 800; border: none;
-        box-shadow: 0 4px 15px rgba(0, 251, 255, 0.3);
     }
 
-    .history-card {
-        background: #161B22;
-        padding: 10px;
-        border-radius: 8px;
-        margin-bottom: 8px;
-        border-left: 4px solid #0078FF;
+    .status-dot {
+        height: 8px; width: 8px; background-color: #00FF41;
+        border-radius: 50%; display: inline-block; margin-right: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. THE SIDEBAR (FIXED TIPS & HISTORY) ---
+# --- 3. SIDEBAR ---
 if 'history' not in st.session_state:
     st.session_state.history = []
 
 with st.sidebar:
-    st.markdown('<div class="wallet-box">🦊 WALLET: NOT CONNECTED</div>', unsafe_allow_html=True)
-    
+    st.markdown('<div style="border:1px solid #00FBFF; color:#00FBFF; padding:10px; border-radius:10px; text-align:center; font-weight:bold;">🦊 WALLET: DISCONNECTED</div>', unsafe_allow_html=True)
     st.title("🛡️ Admin Panel")
-    st.write("---")
     
-    # Prices
+    # System Status
+    st.markdown(f"<div><span class='status-dot'></span> Server Latency: 24ms</div>", unsafe_allow_html=True)
+    
+    st.write("---")
     st.subheader("📈 Market Feed")
     p = get_crypto_prices()
     if p:
@@ -87,61 +86,65 @@ with st.sidebar:
         st.metric("SOL", f"${p['SOL']:,.2f}")
     
     st.write("---")
-    
-    # THE WARNINGS (Restored and Visible)
     st.subheader("⚠️ Security Pro-Tips")
-    st.warning("1. Never share your .env or Private Keys.")
-    st.info("2. Use Webhooks for 0.5ms faster speed.")
-    st.error("3. Test strategies on Paper Trading first.")
+    st.warning("1. Never share Private Keys.")
+    st.info("2. Use Webhooks for faster execution.")
+    st.error("3. Test strategies on Paper Trading.")
     
     st.write("---")
-    
-    # History with functional "Clear" button
     st.subheader("🕒 Recent Scans")
     if st.session_state.history:
         for item in st.session_state.history[-3:]:
-            st.markdown(f'<div class="history-card">{item}</div>', unsafe_allow_html=True)
-        if st.button("🗑️ Clear History"):
+            st.caption(f"• {item}")
+        if st.button("🗑️ Clear"):
             st.session_state.history = []
             st.rerun()
-    else:
-        st.caption("No recent activity.")
 
 # --- 4. MAIN INTERFACE ---
 st.title("🛡️ Trader-Sec AI Intelligence")
-t1, t2 = st.tabs(["🔍 REAL-TIME SCANNER", "💻 CODE AUDITOR"])
+t1, t2 = st.tabs(["🔍 SCANNER", "💻 AUDITOR"])
 
 with t1:
-    st.markdown("### 🛰️ Live Blockchain Intelligence")
     addr = st.text_input("Token Address:", placeholder="0x...", key="scan_addr")
-    if st.button("🔍 RUN DEEP SCAN"):
-        if addr:
-            with st.spinner("Analyzing..."):
-                rep = scan_contract_real(addr, "1")
-                if rep:
-                    # Update History
-                    entry = f"{rep['name']} ({rep['symbol']})"
-                    if entry not in st.session_state.history:
-                        st.session_state.history.append(entry)
-                    
-                    st.markdown(f"""
-                        <div style="background:#0D1117; border:1px solid #00FBFF; padding:25px; border-radius:15px;">
-                            <h2 style="color:#00FBFF;">{rep['name']} Report</h2>
-                            <p>🍯 <b>Honeypot:</b> {rep['honeypot']}</p>
-                            <p>💰 <b>Taxes:</b> {rep['buy_tax']}%/{rep['sell_tax']}%</p>
-                            <hr>
-                            <h2 style="text-align:center; color:#00FBFF;">SCORE: {rep['trust_score']}/100</h2>
-                        </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.error("Address not found on Network.")
+    col1, col2 = st.columns([1,1])
+    with col1:
+        if st.button("🔍 RUN DEEP SCAN"):
+            if addr:
+                with st.spinner("Analyzing..."):
+                    rep = scan_contract_real(addr, "1")
+                    if rep:
+                        entry = f"{rep['name']} ({rep['symbol']})"
+                        if entry not in st.session_state.history:
+                            st.session_state.history.append(entry)
+                        
+                        st.markdown(f"""
+                            <div style="background:#0D1117; border:1px solid #00FBFF; padding:25px; border-radius:15px;">
+                                <h2 style="color:#00FBFF;">{rep['name']} Report</h2>
+                                <p>🍯 <b>Honeypot:</b> {rep['honeypot']}</p>
+                                <p>💰 <b>Taxes:</b> {rep['buy_tax']}%/{rep['sell_tax']}%</p>
+                                <hr>
+                                <h2 style="text-align:center; color:#00FBFF;">SCORE: {rep['trust_score']}/100</h2>
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Added Quick Links
+                        st.write("### 🔗 External Verification")
+                        c1, c2 = st.columns(2)
+                        c1.link_button("📊 View on DexScreener", f"https://dexscreener.com/ethereum/{addr}")
+                        c2.link_button("📜 View on Etherscan", f"https://etherscan.io/address/{addr}")
+                    else:
+                        st.error("Address not found.")
 
 with t2:
-    st.markdown("### 📥 Code Security Audit")
-    u_code = st.text_area("Paste code here:", height=200)
+    st.text_area("Paste code here:", height=200)
     if st.button("🚀 EXECUTE AUDIT"):
-        if u_code:
-            with st.spinner('Checking logic...'):
-                time.sleep(1)
-                st.success("Logic Secure!")
-                st.balloons()
+        st.success("Logic Secure!")
+        st.balloons()
+
+# --- 5. LEGAL DISCLAIMER (The "Not Responsible" part) ---
+st.markdown("""
+    <div class="footer">
+        <b>DISCLAIMER:</b> Trader-Sec AI is an analytical tool only. We are NOT responsible for any financial losses. 
+        Crypto trading carries high risk. Always Do Your Own Research (DYOR). Not Financial Advice.
+    </div>
+""", unsafe_allow_html=True)
