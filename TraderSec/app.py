@@ -141,8 +141,9 @@ with t1:
                     # 4. Live Chart Section
                     st.write("---")
                     st.write("### 📊 Live Price Chart")
-                    chart_url = f"https://www.dexview.com/eth/{addr}"
+                    chart_url = f"https://dexscreener.com/ethereum/{addr}?embed=1&theme=dark"
                     st.components.v1.iframe(chart_url, height=600, scrolling=True)
+                    
                 else:
                     st.error("Address not found. Please ensure it is an Ethereum (ERC-20) address.")
 
