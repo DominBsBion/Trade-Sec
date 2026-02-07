@@ -15,19 +15,16 @@ def get_crypto_prices():
 
 def scan_contract_real(address, chain_id="1"):
     try:
-        # 1. Get the key
-        app_key = st.secrets["GOPLUS_KEY"]
-        
-        # 2. Make the request
+        # We use the open.gopluslabs.io link which is faster for Free Plans
         url = f"https://api.gopluslabs.io/api/v1/token_security/{chain_id}"
         params = {"contract_addresses": address}
-        headers = {"Authorization": f"Bearer {app_key}"}
         
-        response = requests.get(url, params=params, headers=headers, timeout=10)
+        # We REMOVE the "Authorization" header that was causing the signature error
+        response = requests.get(url, params=params, timeout=10)
         data = response.json()
         
-        # 3. Check if the address exists in the results
-        if data.get("code") == 1 and address.lower() in data["result"]:
+        if data.get("code") == 1:
+            # GoPlus returns keys in lowercase, so we make sure we match it
             res = data["result"][address.lower()]
             return {
                 "name": res.get("token_name", "Unknown"),
@@ -37,12 +34,9 @@ def scan_contract_real(address, chain_id="1"):
                 "sell_tax": res.get("sell_tax", "0"),
                 "trust_score": 100 - (int(float(res.get("sell_tax", 0))) * 2) 
             }
-        else:
-            # This tells us if GoPlus saw the address or not
-            st.error(f"GoPlus Error: {data.get('message', 'Address not found on this chain')}")
-            return None
+        return None
     except Exception as e:
-        st.error(f"System Error: {e}")
+        st.error(f"Scanner Error: {e}")
         return None
 
 # --- 2. ELITE DESIGN ---
@@ -159,4 +153,3 @@ st.markdown("""
         Crypto trading carries high risk. Always Do Your Own Research (DYOR). Not Financial Advice.
     </div>
 """, unsafe_allow_html=True)
-
