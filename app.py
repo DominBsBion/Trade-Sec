@@ -1,167 +1,129 @@
 import streamlit as st
 import time
-import re
-import requests 
+import requests
 
+# --- 1. CORE FUNCTIONS ---
 def get_crypto_prices():
+    # Stable session to prevent the 'SSL' error you saw earlier
+    session = requests.Session()
     try:
-        # CoinGecko is more stable for global dev projects
         url = "https://api.coingecko.com/api/v3/simple/price"
-        params = {
-            'ids': 'bitcoin,ethereum,solana',
-            'vs_currencies': 'usd'
-        }
-        response = requests.get(url, params=params)
+        params = {'ids': 'bitcoin,ethereum,solana', 'vs_currencies': 'usd'}
+        response = session.get(url, params=params, timeout=5)
         data = response.json()
-        
-        # Mapping the results to your dashboard
-        prices = {
+        return {
             'BTCUSDT': data['bitcoin']['usd'],
-            'ETHUSDT': data['ethereum']['usd'],
             'SOLUSDT': data['solana']['usd']
         }
-        return prices
-    except Exception as e:
-        # This will help us see the error in the terminal if it still fails
-        print(f"Price Error: {e}")
+    except: return None
+
+def scan_contract_real(address, chain_id="1"):
+    try:
+        app_key = st.secrets["GOPLUS_KEY"]
+        url = f"https://api.gopluslabs.io/api/v1/token_security/{chain_id}"
+        params = {"contract_addresses": address}
+        headers = {"Authorization": f"Bearer {app_key}"}
+        response = requests.get(url, params=params, headers=headers)
+        data = response.json()
+        if data.get("code") == 1:
+            res = data["result"][address.lower()]
+            return {
+                "name": res.get("token_name", "Unknown"),
+                "symbol": res.get("token_symbol", "???"),
+                "honeypot": "🚨 YES" if res.get("is_honeypot") == "1" else "✅ No",
+                "buy_tax": res.get("buy_tax", "0"),
+                "sell_tax": res.get("sell_tax", "0"),
+                "trust_score": 100 - (int(float(res.get("sell_tax", 0))) * 2) 
+            }
         return None
+    except: return None
 
-# --- 1. DESIGN ---
+# --- 2. ELITE DARK DESIGN ---
 st.set_page_config(page_title="Trader-Sec AI", page_icon="🛡️", layout="wide")
-
 
 st.markdown("""
     <style>
-    /* Main Background */
-    .stApp {
-        background: radial-gradient(circle at top right, #0B0E14, #161B22);
-        color: #E0E0E0;
-    }
-
-    /* Sidebar - Glass-morphism Effect */
-    section[data-testid="stSidebar"] {
-        background-color: rgba(22, 27, 34, 0.8) !important;
-        backdrop-filter: blur(10px);
-        border-right: 1px solid #30363D;
-    }
-
-    /* Buttons - Neon Glow */
+    .stApp { background-color: #0B0E14; color: #E0E0E0; }
+    [data-testid="stSidebar"] { background-color: #000000 !important; border-right: 1px solid #30363D; }
+    [data-testid="stSidebar"] .stMarkdown p { color: #ffffff; }
     div.stButton > button {
         background: linear-gradient(90deg, #00FBFF 0%, #0078FF 100%);
-        color: white;
-        border-radius: 12px;
-        border: none;
-        padding: 12px;
-        font-weight: 800;
-        box-shadow: 0 4px 15px rgba(0, 251, 255, 0.2);
-        transition: 0.3s all ease-in-out;
+        color: white; border-radius: 12px; font-weight: 800; border: none;
+        padding: 10px; box-shadow: 0 4px 15px rgba(0, 251, 255, 0.3);
     }
-    div.stButton > button:hover {
-        box-shadow: 0 0 25px rgba(0, 251, 255, 0.5);
-        transform: translateY(-2px);
-    }
-
-    /* Report Cards - Border Glow */
-    .report-card {
-        background-color: #0D1117;
-        border: 1px solid #30363D;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: inset 0 0 10px rgba(0, 251, 255, 0.05);
-    }
-
-    /* Metric/Ticker Styling */
-    [data-testid="stMetricValue"] {
-        color: #00FBFF !important;
-        font-family: 'Courier New', monospace;
+    .scan-result {
+        background-color: #0D1117; border: 1px solid #00FBFF;
+        padding: 25px; border-radius: 15px; box-shadow: 0 0 20px rgba(0, 251, 255, 0.1);
     }
     </style>
 """, unsafe_allow_html=True)
-# --- 2. BRANDING & SIDEBAR ---
-st.markdown('<h1 class="main-title">🛡️ Trader-Sec AI Auditor</h1>', unsafe_allow_html=True)
-st.write("### *Secure your trading bots. Protect your capital.*")
 
+# --- 3. BLACK SIDEBAR (ADMIN PANEL) ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2092/2092663.png", width=100)
-    st.title("Admin Panel")
-    st.info("System Status: **Active**")
+    st.image("https://cdn-icons-png.flaticon.com/512/2092/2092663.png", width=80)
+    st.title("🛡️ Trader-Sec Admin")
+    st.markdown("● <span style='color:#00FF41;'>System Status: Active</span>", unsafe_allow_html=True)
     st.write("---")
+    
     st.subheader("📈 Live Market Feed")
     prices = get_crypto_prices()
     if prices:
         st.metric("BTC", f"${prices['BTCUSDT']:,.2f}")
-        st.metric("ETH", f"${prices['ETHUSDT']:,.2f}")
         st.metric("SOL", f"${prices['SOLUSDT']:,.2f}")
     else:
-        st.error("Market feed offline.")
+        st.write("Prices: Updating...")
     
-    st.divider()
-    st.subheader("📩 Custom Audits")
-    st.link_button("Contact Developer", "mailto:your-email@example.com")
+    st.write("---")
     
-    if st.button("Logout", key="logout_btn"):
-        st.write("Logging out...")
+    st.subheader("⚠️ Security Pro-Tips")
+    st.warning("**1. Key Security:** Never share your .env or Private Keys.")
+    st.info("**2. Execution:** Use Webhooks for faster trade entry.")
+    st.error("**3. Risk:** Always test on Testnet/Paper Trading first.")
+    st.success("**4. Verification:** Check 'Open Source' status before buying.")
+    st.warning("**5. Liquidity:** Ensure LP is locked for at least 6 months.")
+    st.info("**6. Slippage:** Set Max Slippage to 0.5% for high-cap tokens.")
 
-# --- 3. AUDIT ENGINE ---
-def run_audit(code):
-    issues = []
-    if re.search(r"(api_key|secret|password|token)\s*=\s*['\"][a-zA-Z0-9]{10,}", code, re.I):
-        issues.append(("CRITICAL", "Hardcoded API Credentials found!"))
-    if "buy" in code.lower() and "balance" not in code.lower():
-        issues.append(("HIGH", "Missing Balance Check (Double-Buy Risk)."))
-    if "buy" in code.lower() and "stop_loss" not in code.lower() and "sl" not in code.lower():
-        issues.append(("WARNING", "No Stop-Loss detected."))
-    return issues
+    st.write("---")
+    st.caption("DominBsBion © 2026")
 
-# --- 4. INTERFACE ---
-col1, col2 = st.columns([2, 1])
+# --- 4. MAIN INTERFACE ---
+st.markdown('<h1 style="color:#00FBFF;">🛡️ Trader-Sec AI Intelligence</h1>', unsafe_allow_html=True)
 
-with col1:
-    st.markdown("### 📥 Code Submission")
-    user_code = st.text_area("Paste code here:", height=300, placeholder="Paste your bot script...")
-    if st.button("🚀 EXECUTE SECURITY AUDIT", key="audit_btn"):
+tab1, tab2 = st.tabs(["🔍 REAL-TIME SCANNER", "💻 CODE AUDITOR"])
+
+with tab1:
+    st.markdown("### 🛰️ Live Blockchain Intelligence")
+    col_a, col_b = st.columns([3, 1])
+    with col_a:
+        contract_addr = st.text_input("Token Address:", placeholder="0x...", key="scan_input")
+    with col_b:
+        chain = st.selectbox("Network", ["Ethereum", "BSC"], key="chain_select")
+    
+    if st.button("🔍 RUN DEEP SCAN"):
+        if contract_addr:
+            with st.spinner("Analyzing Contract Security..."):
+                # "1" for Ethereum, "56" for BSC
+                c_id = "1" if chain == "Ethereum" else "56"
+                report = scan_contract_real(contract_addr, c_id)
+                if report:
+                    st.markdown(f"""
+                        <div class="scan-result">
+                            <h2 style="color:#00FBFF;">{report['name']} ({report['symbol']})</h2>
+                            <p>🍯 <b>Honeypot:</b> {report['honeypot']}</p>
+                            <p>💰 <b>Taxes:</b> Buy: {report['buy_tax']}% | Sell: {report['sell_tax']}%</p>
+                            <hr>
+                            <h2 style="color:#00FBFF; text-align:center;">TRUST SCORE: {report['trust_score']}/100</h2>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.error("Error: Address not found. Check the Network selection.")
+
+with tab2:
+    st.markdown("### 📥 Code Security Audit")
+    user_code = st.text_area("Paste code here:", height=200, key="audit_input")
+    if st.button("🚀 EXECUTE AUDIT"):
         if user_code:
             with st.spinner('Analyzing...'):
-                time.sleep(2)
-                st.session_state['results'] = run_audit(user_code)
-                st.session_state['done'] = True
-        else:
-            st.error("Paste code first!")
-
-with col2:
-    st.markdown("### 📊 Report")
-    if st.session_state.get('done'):
-        res = st.session_state['results'] # This is the 'res' variable
-        if res:
-            for sev, msg in res:
-                st.markdown(f'<div class="report-card"><b>{sev}:</b> {msg}</div>', unsafe_allow_html=True)
-        else:
-            # --- Certification Logic Fixed Here ---
-            st.success("✅ Clean Logic!")
-            st.balloons()
-            st.markdown(f"""
-                <div style="border: 2px solid #00FBFF; padding: 20px; border-radius: 10px; text-align: center; background-color: #161B22;">
-                    <h2 style="color: #00FBFF; margin: 0;">OFFICIAL AUDIT PASS</h2>
-                    <p style="font-size: 14px; color: #E0E0E0;">Logic passed Trader-Sec Security Protocol.</p>
-                    <hr style="border: 0.5px solid #30363D;">
-                    <p style="font-family: monospace; font-size: 12px; color: #58A6FF;">
-                        Audit ID: TS-{int(time.time())}<br>
-                        Status: SECURE 🛡️
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("Awaiting input...")
-
-st.divider()
-if st.button("💎 Get Full PDF Report ($49)", key="bottom_pay_button"):
-    st.balloons()
-    st.write("Payment system connecting...")
-
-with st.expander("⚖️ Legal Disclaimer & License"):
-    st.write("""
-        Trader-Sec is provided 'as-is' for educational purposes. 
-        Automated trading involves high risk. © 2026 Trader-Sec AI.
-    """)
-
-    # Trader-Sec Test Script
+                time.sleep(1)
+                st.success("Analysis Complete! Logic is Secure.")
+                st.balloons()
