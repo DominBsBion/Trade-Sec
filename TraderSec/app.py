@@ -15,13 +15,19 @@ def get_crypto_prices():
 
 def scan_contract_real(address, chain_id="1"):
     try:
+        # 1. Get the key
         app_key = st.secrets["GOPLUS_KEY"]
+        
+        # 2. Make the request
         url = f"https://api.gopluslabs.io/api/v1/token_security/{chain_id}"
         params = {"contract_addresses": address}
         headers = {"Authorization": f"Bearer {app_key}"}
-        response = requests.get(url, params=params, headers=headers)
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
         data = response.json()
-        if data.get("code") == 1:
+        
+        # 3. Check if the address exists in the results
+        if data.get("code") == 1 and address.lower() in data["result"]:
             res = data["result"][address.lower()]
             return {
                 "name": res.get("token_name", "Unknown"),
@@ -31,8 +37,13 @@ def scan_contract_real(address, chain_id="1"):
                 "sell_tax": res.get("sell_tax", "0"),
                 "trust_score": 100 - (int(float(res.get("sell_tax", 0))) * 2) 
             }
+        else:
+            # This tells us if GoPlus saw the address or not
+            st.error(f"GoPlus Error: {data.get('message', 'Address not found on this chain')}")
+            return None
+    except Exception as e:
+        st.error(f"System Error: {e}")
         return None
-    except: return None
 
 # --- 2. ELITE DESIGN ---
 st.set_page_config(page_title="Trader-Sec AI", page_icon="🛡️", layout="wide")
@@ -148,3 +159,4 @@ st.markdown("""
         Crypto trading carries high risk. Always Do Your Own Research (DYOR). Not Financial Advice.
     </div>
 """, unsafe_allow_html=True)
+
