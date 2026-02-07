@@ -140,6 +140,11 @@ with t1:
                     else:
                         st.error("Address not found.")
 
+                        # This adds a live professional chart below your report
+st.write("### 📊 Live Price Chart")
+chart_url = f"https://www.dexview.com/eth/{addr}" # Change 'eth' to 'bsc' if scanning BSC
+st.components.v1.iframe(chart_url, height=500, scrolling=True)
+
 with t2:
     st.text_area("Paste code here:", height=200)
     if st.button("🚀 EXECUTE AUDIT"):
